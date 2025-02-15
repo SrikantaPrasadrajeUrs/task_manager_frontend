@@ -6,7 +6,7 @@ class UserModel {
   final String name;
   final String token;
   final String createdAt;
-  final String modifiedAt;
+  final String updatedAt;
 
   UserModel({
     required this.id,
@@ -14,7 +14,7 @@ class UserModel {
     required this.name,
     required this.token,
     required this.createdAt,
-    required this.modifiedAt,
+    required this.updatedAt,
   });
 
   // Convert a Map to a UserModel
@@ -23,9 +23,9 @@ class UserModel {
       id: map['id'] ?? '',
       email: map['email'] ?? '',
       name: map['name'] ?? '',
-      token: map['token'] ?? '',
+      token: map['refreshToken'] ?? '',
       createdAt: map['createdAt'] ?? '',
-      modifiedAt: map['modifiedAt'] ?? '',
+      updatedAt: map['updatedAt'] ?? '',
     );
   }
 
@@ -37,7 +37,7 @@ class UserModel {
       'name': name,
       'token': token,
       'createdAt': createdAt,
-      'modifiedAt': modifiedAt,
+      'updatedAt': updatedAt,
     };
   }
 
@@ -52,7 +52,7 @@ class UserModel {
         name == other.name &&
         token == other.token &&
         createdAt == other.createdAt &&
-        modifiedAt == other.modifiedAt;
+        updatedAt == other.updatedAt;
   }
 
   @override
@@ -60,6 +60,6 @@ class UserModel {
     return id.hashCode ^
     email.hashCode ^
     createdAt.hashCode ^
-    modifiedAt.hashCode;
+    updatedAt.hashCode;
   }
 }

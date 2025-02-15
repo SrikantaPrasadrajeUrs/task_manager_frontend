@@ -10,8 +10,7 @@ class ConnectionCheckImpl extends ConnectionChecker{
   Future<bool> get isConnected async =>await checkConnection();
 
   Future<bool> checkConnection()async{
-    final result = await (Connectivity().checkConnectivity());
-    if(result.isEmpty) return false;
+    final result = await Connectivity().checkConnectivity();
     if(result.contains(ConnectivityResult.wifi)||result.contains(ConnectivityResult.mobile)) return true;
     return false;
   }

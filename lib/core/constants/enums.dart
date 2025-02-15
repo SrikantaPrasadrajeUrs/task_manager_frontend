@@ -1,6 +1,7 @@
 
 class ConstantSizes{
-  static const horizontalPadding = 16;
-  static const verticalPadding = 10;
-  static const appBarHeight = 60;
+  ConstantSizes._();
+  static const double horizontalPadding = 16;
+  static const double verticalPadding = 10;
+  static const double appBarHeight = 60;
 }

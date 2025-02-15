@@ -2,17 +2,21 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:task_manager/core/custom_exception/custom_exception.dart';
 import 'package:http/http.dart' as http;
+import 'package:task_manager/core/network/connection_checker.dart';
 import 'package:task_manager/core/utils/sp_helper.dart';
+
+import '../custom_exception/network_exception.dart';
 
 
 class HTTPService {
+  static final ConnectionChecker _connectionChecker = ConnectionCheckImpl();
    static String xAuthToken = "x-auth-token";
   static const Map<String, String> headers = {
     "Content-Type": "application/json",
   };
 
-  static Future<dynamic> get(String endPoint, {int? statusCode}) async {
-    return await _sendRequest(null, null, http.get, endPoint, null, statusCode);
+  static Future<dynamic> get(String endPoint, {int? statusCode,Map<String,String>? extraHeaders,bool wantException = false}) async {
+    return await _sendRequest(null, null, http.get, endPoint, null, statusCode,wantException: wantException);
   }
 
   static Future<dynamic> post(String endPoint, Map<String, dynamic>? data,
@@ -59,14 +63,18 @@ class HTTPService {
         bool wantException = false,
         bool wantLogs = false,
         bool printData = false,
-        bool sendHeaders = true}) async {
+        bool sendHeaders = true,Map<String,String>? extraHeaders}) async {
     try {
+      if(!(await _connectionChecker.isConnected)){
+        throw NetworkException("No internet connection");
+      }
+      bool isHeaderNotEmpty = extraHeaders!=null&&extraHeaders.isNotEmpty;
+
       String? token = await SpHelper().getToken();
       // Default status code to 200 if null
       if (putOrPost != null && get != null && delete != null) {
         throw Exception("Please pass either put or post or get method");
       }
-      print(Uri.parse(endPoint));
       statusCode ??= 200;
       final http.Response? response;
       if (putOrPost != null) {
@@ -83,6 +91,7 @@ class HTTPService {
           Uri.parse(endPoint),
           headers: {
             ...headers,
+            ...(isHeaderNotEmpty?extraHeaders:<String,String>{}),
             xAuthToken: token??"",
           },
         );

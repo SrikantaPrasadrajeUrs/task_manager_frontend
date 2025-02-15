@@ -1,10 +1,9 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:task_manager/core/constants/config.dart';
-import 'package:task_manager/core/constants/endpoints.dart';
-import 'package:task_manager/core/services/http_service.dart';
 import 'package:task_manager/core/utils/utils.dart';
 import 'package:task_manager/features/auth/cubit/auth_cubit.dart';
+import 'package:task_manager/features/auth/views/sign_in.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -38,7 +37,7 @@ class _SignUpState extends State<SignUp> {
   void handleSignUp(BuildContext context) async {
     if (!formKey.currentState!.validate()) return;
 
-    final email = emailController.text.trim();
+    final email = emailController.text.trim().toLowerCase();
     final password = passwordController.text.trim();
     final name = nameController.text.trim();
 
@@ -62,7 +61,11 @@ class _SignUpState extends State<SignUp> {
       context.read<AuthCubit>().signUp(name, email, password);
     });
   }
-  
+
+  void navigateToSignInPage(BuildContext context){
+    Navigator.of(context).push(MaterialPageRoute(builder: (context)=>const SignIn()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,10 +74,11 @@ class _SignUpState extends State<SignUp> {
         child: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           if(state is AuthFailure){
-            showSnackBar("Sign up failed", context);
+            showSnackBar("Sign up failed: ${state.error}", context);
           }
-          if(state is AuthSignUp){
+          if(state is AuthSuccess){
             showSnackBar("Sign up Success", context);
+            navigateToSignInPage(context);
           }
         },
       builder: (context, state) {
@@ -119,6 +123,7 @@ class _SignUpState extends State<SignUp> {
                         text: "Already have an account? ",
                         children: [
                           TextSpan(
+                            recognizer: TapGestureRecognizer()..onTap=()=>navigateToSignInPage(context),
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                             text: "Sign in"
                           )

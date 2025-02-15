@@ -2,10 +2,12 @@
 import 'package:task_manager/core/constants/config.dart';
 import 'package:task_manager/core/constants/endpoints.dart';
 import 'package:task_manager/core/services/http_service.dart';
+import 'package:task_manager/data/models/user_model.dart';
 
 abstract class AuthRemoteRepository{
-  Future<void> signUp(String userName,String email,String password);
-  Future<void> login(String email, String password);
+  Future<dynamic> signUp(String userName,String email,String password);
+  Future<UserModel?> login(String email, String password);
+  Future<dynamic> tokenIsValid(String token);
 }
 
 class AuthRemoteRepositoryImpl implements AuthRemoteRepository{
@@ -15,11 +17,30 @@ class AuthRemoteRepositoryImpl implements AuthRemoteRepository{
       "name":name,
       "email":email,
       "password":password
-    }, statusCode: 201);
+    }, statusCode: 201,wantException: true);
   }
 
   @override
-  Future<void> login(String email, String password) async{
-      
+  Future<UserModel?> login(String email, String password) async{
+    final response = await HTTPService.post("$domain${Endpoints.login}", {
+      "email":email,
+      "password":password
+    },wantException: true);
+    if(response is Map&&response['userData'] is Map){
+      accessToken = response['userData']?['accessToken'] ?? '';
+      return UserModel.fromMap(response['userData']);
+    }
+    return null;
+  }
+
+  @override
+  Future<UserModel?> tokenIsValid(String token) async{
+    final response = await HTTPService.get("$domain${Endpoints.tokenIsValid}",extraHeaders: {
+      "x-auth-token":token
+    },wantException: true);
+    if(response is Map&&response['userData'] is Map){
+      return UserModel.fromMap(response['userData']);
+    }
+    return null;
   }
 }
