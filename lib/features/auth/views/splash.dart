@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_manager/features/auth/cubit/auth_cubit.dart';
 import 'package:task_manager/features/auth/views/welcome.dart';
+import '../../../core/utils/utils.dart';
 import '../../home/views/home.dart';
 
 class Splash extends StatefulWidget {
@@ -57,7 +58,7 @@ class SplashInitialScreen extends StatelessWidget {
         children: [
           Image.asset("assets/images/img1.jpg"),
           const SizedBox(height: 16),
-          const CircularProgressIndicator(),
+          centerLoader(),
           const SizedBox(height: 16),
           const Text("Loading..."),
         ],

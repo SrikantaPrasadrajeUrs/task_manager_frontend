@@ -2,7 +2,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:task_manager/data/models/user_model.dart';
 
-abstract class AuthLocalRepository{
+sealed class AuthLocalRepository{
   String tableName = "users";
   Database? _database;
   Future<Database> _initDb();
@@ -23,16 +23,16 @@ class AuthLocalRepositoryImpl extends AuthLocalRepository{
   }
 
   @override
-  Future<Database> _initDb()async{
+  Future<Database> _initDb() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath,"auth.db");
-    return openDatabase(path,version: 1,
-        onUpgrade: (db, oldVersion, newVersion) async {
-          if (oldVersion < newVersion) {
-            await db.execute(
-              'DROP TABLE $tableName',
-            );
-            db.execute('''
+    final path = join(dbPath, "auth.db");
+    return openDatabase(
+      path,
+      version: 1,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < newVersion) {
+          await db.execute('DROP TABLE IF EXISTS $tableName');
+          await db.execute('''
           CREATE TABLE $tableName(
             id TEXT PRIMARY KEY,
             email TEXT NOT NULL,
@@ -41,22 +41,24 @@ class AuthLocalRepositoryImpl extends AuthLocalRepository{
             createdAt TEXT NOT NULL,
             updatedAt TEXT NOT NULL
           )
-    ''');
-          }
+        ''');
         }
-        ,onConfigure: (db){
-      return db.execute('''
-      CREATE TABLE IF NOT EXISTS $tableName(
-            id TEXT PRIMARY KEY,
-            email TEXT NOT NULL,
-            token TEXT NOT NULL,
-            name TEXT NOT NULL,
-            createdAt TEXT NOT NULL,
-            updatedAt TEXT NOT NULL
-          )
+      },
+      onConfigure: (db) async {
+        await db.execute('''
+        CREATE TABLE IF NOT EXISTS $tableName(
+          id TEXT PRIMARY KEY,
+          email TEXT NOT NULL,
+          token TEXT NOT NULL,
+          name TEXT NOT NULL,
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT NOT NULL
+        )
       ''');
-    });
+      },
+    );
   }
+
 
   @override
   Future<void> insertUser(UserModel user)async{

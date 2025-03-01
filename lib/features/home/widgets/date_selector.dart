@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:task_manager/core/utils/utils.dart';
+import 'package:task_manager/features/home/cubit/task_cubit.dart';
 
 class DateSelector extends StatefulWidget {
   const DateSelector({super.key});
@@ -11,24 +13,36 @@ class DateSelector extends StatefulWidget {
 
 class _DateSelectorState extends State<DateSelector> {
   int skipWeeks = 0;
-  int? selectedDate;
+  final currentDate = DateTime.now();
+  DateTime selectedDate = DateTime.now();
+  String monthName = DateFormat("MMMM").format(DateTime.now());
+  List<DateTime> weekDates = [];
+
+  @override
+  void initState() {
+    super.initState();
+    weekDates = generateWeekDates(skipWeeks);
+  }
+
+  void onWeekChanged(bool shouldIncrease) {
+    weekDates = generateWeekDates(shouldIncrease?++skipWeeks:--skipWeeks);
+    monthName = DateFormat("MMMM").format(weekDates.first);
+    setState(() {
+      weekDates;
+      monthName;
+      skipWeeks;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final weekDates = generateWeekDates(skipWeeks);
-    String monthName = DateFormat('MMMM').format(weekDates.first);
-
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
-              onPressed: () {
-                setState(() {
-                  skipWeeks--;
-                });
-              },
+              onPressed: ()=> onWeekChanged(false),
               icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Colors.black54),
             ),
             Text(
@@ -41,35 +55,31 @@ class _DateSelectorState extends State<DateSelector> {
               ),
             ),
             IconButton(
-              onPressed: () {
-                setState(() {
-                  skipWeeks++;
-                });
-              },
+              onPressed: ()=> onWeekChanged(true),
               icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18, color: Colors.black54),
             ),
           ],
         ),
-
         // Date List
         SizedBox(
+          key: ValueKey(MediaQuery.of(context).orientation),
           height: 90,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: weekDates.length,
             itemBuilder: (context, index) {
               final date = weekDates[index];
-              final isSelected = selectedDate == date.day;
-
+              final isSelected = selectedDate.day == date.day&&selectedDate.month==date.month&&selectedDate.year==date.year;
               return GestureDetector(
                 onTap: () {
                   setState(() {
-                    selectedDate = date.day;
+                    selectedDate = date;
                   });
+                  context.read<TaskCubit>().onDateSelected(selectedDate);
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  width: 50,
+                  width: MediaQuery.of(context).size.width/9.5,
                   margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
                   decoration: BoxDecoration(
                     gradient: isSelected

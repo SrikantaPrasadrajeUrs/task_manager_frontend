@@ -55,7 +55,7 @@ class AuthCubit extends Cubit<AuthState>{
         return;
       }
       final response = await authRemoteRepository.tokenIsValid(token);
-      if(response!=null){
+      if(response is UserModel){
         emit(AuthLoggedIn(response));
       }
     }on NetworkException catch(e){
@@ -66,7 +66,11 @@ class AuthCubit extends Cubit<AuthState>{
         emit(AuthFailure("Failed to load offline data"));
       }
     }on StatusCodeException catch(e){
-      emit(AuthFailure(e.message));
+      if(e.statusCode==498){
+
+      }else{
+        emit(AuthFailure(e.message));
+      }
     }catch(e){
       emit(AuthFailure(e.toString()));
     }

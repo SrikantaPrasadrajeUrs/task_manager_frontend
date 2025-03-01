@@ -7,7 +7,7 @@ import 'package:task_manager/data/models/user_model.dart';
 abstract class AuthRemoteRepository{
   Future<dynamic> signUp(String userName,String email,String password);
   Future<UserModel?> login(String email, String password);
-  Future<dynamic> tokenIsValid(String token);
+  Future<UserModel?> tokenIsValid(String token);
 }
 
 class AuthRemoteRepositoryImpl implements AuthRemoteRepository{
@@ -34,11 +34,10 @@ class AuthRemoteRepositoryImpl implements AuthRemoteRepository{
   }
 
   @override
-  Future<UserModel?> tokenIsValid(String token) async{
-    final response = await HTTPService.get("$domain${Endpoints.tokenIsValid}",extraHeaders: {
-      "x-auth-token":token
-    },wantException: true);
+  Future<UserModel?> tokenIsValid(String refreshToken) async{
+    final response = await HTTPService.get("$domain${Endpoints.tokenIsValid}",wantException: true,refreshKey: refreshToken);
     if(response is Map&&response['userData'] is Map){
+      accessToken = response['userData']?['accessToken']??"";
       return UserModel.fromMap(response['userData']);
     }
     return null;

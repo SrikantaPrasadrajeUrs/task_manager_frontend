@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:task_manager/core/constants/config.dart';
+import 'package:task_manager/core/constants/endpoints.dart';
 import 'package:task_manager/core/custom_exception/custom_exception.dart';
 import 'package:http/http.dart' as http;
 import 'package:task_manager/core/network/connection_checker.dart';
@@ -15,8 +17,8 @@ class HTTPService {
     "Content-Type": "application/json",
   };
 
-  static Future<dynamic> get(String endPoint, {int? statusCode,Map<String,String>? extraHeaders,bool wantException = false}) async {
-    return await _sendRequest(null, null, http.get, endPoint, null, statusCode,wantException: wantException);
+  static Future<dynamic> get(String endPoint, {int? statusCode,Map<String,String>? extraHeaders,bool wantException = false,String? refreshKey}) async {
+    return await _sendRequest(null, null, http.get, endPoint, null, statusCode,wantException: wantException,refreshKey: refreshKey);
   }
 
   static Future<dynamic> post(String endPoint, Map<String, dynamic>? data,
@@ -41,10 +43,10 @@ class HTTPService {
   }
 
   static Future<dynamic> delete(String endPoint,
-      {int? statusCode, bool wantErrorData = false}) async {
+      {int? statusCode, bool wantErrorData = false, bool wantException = false}) async {
     return await _sendRequest(
         http.delete, null, null, endPoint, null, statusCode,
-        wantErrorData: wantErrorData);
+        wantErrorData: wantErrorData,wantException: wantException);
   }
 
   static Future<dynamic> _sendRequest(
@@ -63,6 +65,7 @@ class HTTPService {
         bool wantException = false,
         bool wantLogs = false,
         bool printData = false,
+        String? refreshKey,
         bool sendHeaders = true,Map<String,String>? extraHeaders}) async {
     try {
       if(!(await _connectionChecker.isConnected)){
@@ -70,7 +73,7 @@ class HTTPService {
       }
       bool isHeaderNotEmpty = extraHeaders!=null&&extraHeaders.isNotEmpty;
 
-      String? token = await SpHelper().getToken();
+      String? token = refreshKey??accessToken;
       // Default status code to 200 if null
       if (putOrPost != null && get != null && delete != null) {
         throw Exception("Please pass either put or post or get method");
@@ -83,7 +86,7 @@ class HTTPService {
           body: jsonEncode(data),
           headers: {
             ...headers,
-            xAuthToken: token??"",
+            xAuthToken: token,
           },
         );
       } else if (get != null) {
@@ -92,7 +95,7 @@ class HTTPService {
           headers: {
             ...headers,
             ...(isHeaderNotEmpty?extraHeaders:<String,String>{}),
-            xAuthToken: token??"",
+            xAuthToken: token,
           },
         );
       } else {
@@ -100,7 +103,7 @@ class HTTPService {
           Uri.parse(endPoint),
           headers: {
             ...headers,
-            xAuthToken: token??"",
+            xAuthToken: token,
           },
         );
       }
@@ -108,7 +111,13 @@ class HTTPService {
       if (response == null) throw NoMethodException();
       if (response.statusCode == statusCode) {
         return jsonDecode(response.body);
-      } else {
+      } else if(response.statusCode==403){
+        print("refreshing token");
+        await verifyTokenAndExecuteCurrentTask();
+        return _sendRequest(delete,putOrPost,get,endPoint,data,statusCode,
+            wantErrorData: wantErrorData, wantException: wantException, wantLogs: wantLogs, printData: printData, sendHeaders: sendHeaders, extraHeaders: extraHeaders);
+        // here execute current send request again if no excetion is sthrown
+      }else {
         if (wantErrorData) {
           return jsonDecode(response.body);
         } else {
@@ -127,5 +136,26 @@ class HTTPService {
         return null;
       }
     }
+  }
+
+  static Future<void> verifyTokenAndExecuteCurrentTask()async{
+    final spHelper = SpHelper();
+      final refreshKey = await spHelper.getToken()??"";
+      final response = await http.get(Uri.parse("$domain${Endpoints.tokenIsValid}"),headers: {
+        "x-auth-token": refreshKey,
+        "Content-Type": "application/json",
+      });
+      if(response.statusCode==498){
+        throw StatusCodeException(statusCode: 498, message: "Session Expired");
+      }else if(response.statusCode==200){
+        final data  = jsonDecode(response.body);
+        if(data is Map&& data.containsKey("userData")){
+          accessToken = data['userData']['accessToken'].toString();
+        }
+      }else{
+        if(jsonDecode(response.body)['message'].toString().contains("jwt expired")){
+          throw StatusCodeException(statusCode: 498, message: "jwt expired");
+        }
+      }
   }
 }
