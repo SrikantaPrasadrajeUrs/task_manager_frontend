@@ -12,20 +12,38 @@ class Splash extends StatefulWidget {
   State<Splash> createState() => _SplashState();
 }
 
-class _SplashState extends State<Splash> {
+class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2),() {
-      context.read<AuthCubit>().tokenIsValid();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
+    _scaleAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.forward().then((_){
+        context.read<AuthCubit>().tokenIsValid();
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _handleAuthState(BuildContext context, AuthState state) {
     if (state is AuthLoggedIn) {
       _navigateTo(context, const Home());
     } else if (state is AuthFailure) {
-      debugPrint(state.error); // Use debugPrint instead of print
+      debugPrint(state.error);
       _navigateTo(context, const Welcome());
     }
   }
@@ -40,28 +58,50 @@ class _SplashState extends State<Splash> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: BlocConsumer<AuthCubit, AuthState>(
-        listener: _handleAuthState, // Cleaner listener function
-        builder: (context, state) => const SplashInitialScreen(),
+        listener: _handleAuthState,
+        builder: (context, state) => SplashInitialScreen(scaleAnimation: _scaleAnimation),
       ),
     );
   }
 }
 
 class SplashInitialScreen extends StatelessWidget {
-  const SplashInitialScreen({super.key});
+  final Animation<double> scaleAnimation;
+  const SplashInitialScreen({super.key, required this.scaleAnimation});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset("assets/images/img1.jpg"),
-          const SizedBox(height: 16),
-          centerLoader(),
-          const SizedBox(height: 16),
-          const Text("Loading..."),
-        ],
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF87CEFA), Color(0xFF4682B4)], // Sky blue gradient
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ScaleTransition(
+              scale: scaleAnimation,
+              child: ClipRRect(
+                  borderRadius: BorderRadius.circular(50),
+                  child: Image.asset("assets/images/ss.jpg", width: 300)),
+            ),
+            const SizedBox(height: 20),
+            centerLoader(),
+            const SizedBox(height: 16),
+            const Text(
+              "Loading...",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
